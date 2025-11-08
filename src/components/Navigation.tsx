@@ -1,10 +1,12 @@
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Heart, Home, ShoppingBag, BookOpen, Calendar, User, LogIn, PawPrint } from "lucide-react";
+import { Heart, Home, ShoppingBag, BookOpen, Calendar, User, LogIn, PawPrint, LogOut } from "lucide-react";
 import petIcon from "@/assets/pet-icon.png";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Navigation = () => {
   const location = useLocation();
+  const { user, userRole, signOut } = useAuth();
   
   const isActive = (path: string) => location.pathname === path;
   
@@ -76,23 +78,44 @@ const Navigation = () => {
         </div>
         
         <div className="flex items-center gap-2">
-          <Button
-            variant={isActive("/dashboard") ? "default" : "outline"}
-            size="sm"
-            asChild
-          >
-            <Link to="/dashboard" className="gap-2">
-              <User className="h-4 w-4" />
-              <span className="hidden sm:inline">Dashboard</span>
-            </Link>
-          </Button>
-          
-          <Button variant="default" size="sm" asChild>
-            <Link to="/login" className="gap-2">
-              <LogIn className="h-4 w-4" />
-              <span className="hidden sm:inline">Sign In</span>
-            </Link>
-          </Button>
+          {user ? (
+            <>
+              <Button
+                variant={isActive("/dashboard") ? "default" : "outline"}
+                size="sm"
+                asChild
+              >
+                <Link to="/dashboard" className="gap-2">
+                  <User className="h-4 w-4" />
+                  <span className="hidden sm:inline">Dashboard</span>
+                </Link>
+              </Button>
+              
+              {userRole === 'admin' && (
+                <Button
+                  variant={isActive("/admin") ? "default" : "outline"}
+                  size="sm"
+                  asChild
+                >
+                  <Link to="/admin" className="gap-2">
+                    <span className="hidden sm:inline">Admin</span>
+                  </Link>
+                </Button>
+              )}
+              
+              <Button variant="outline" size="sm" onClick={signOut}>
+                <LogOut className="h-4 w-4" />
+                <span className="hidden sm:inline">Sign Out</span>
+              </Button>
+            </>
+          ) : (
+            <Button variant="default" size="sm" asChild>
+              <Link to="/login" className="gap-2">
+                <LogIn className="h-4 w-4" />
+                <span className="hidden sm:inline">Sign In</span>
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
     </nav>

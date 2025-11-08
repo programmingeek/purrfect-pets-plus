@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,44 +7,92 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import petIcon from "@/assets/pet-icon.png";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Login = () => {
   const navigate = useNavigate();
+  const { user, userRole, signIn, signUp, signInWithGoogle } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [signupFirstName, setSignupFirstName] = useState("");
+  const [signupLastName, setSignupLastName] = useState("");
+  const [signupEmail, setSignupEmail] = useState("");
+  const [signupPhone, setSignupPhone] = useState("");
+  const [signupPassword, setSignupPassword] = useState("");
+  const [signupConfirmPassword, setSignupConfirmPassword] = useState("");
 
-  const handleLogin = async (e: React.FormEvent, role?: string) => {
-    e.preventDefault();
-    setIsLoading(true);
-    
-    // Simulate login
-    setTimeout(() => {
-      setIsLoading(false);
-      toast.success("Welcome back!", {
-        description: "You've successfully logged in."
-      });
-      
-      // Navigate based on role
-      if (role === "admin") {
+  useEffect(() => {
+    if (user && userRole) {
+      if (userRole === "admin") {
         navigate("/admin");
-      } else if (role === "vet") {
-        navigate("/vet");
       } else {
         navigate("/dashboard");
       }
-    }, 1000);
+    }
+  }, [user, userRole, navigate]);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    
+    const { error } = await signIn(loginEmail, loginPassword);
+    
+    setIsLoading(false);
+    
+    if (error) {
+      toast.error("Login failed", {
+        description: error.message || "Please check your credentials and try again."
+      });
+    } else {
+      toast.success("Welcome back!", {
+        description: "You've successfully logged in."
+      });
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    const { error } = await signInWithGoogle();
+    
+    if (error) {
+      toast.error("Google sign-in failed", {
+        description: error.message || "Please try again."
+      });
+    }
   };
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (signupPassword !== signupConfirmPassword) {
+      toast.error("Passwords don't match", {
+        description: "Please make sure both passwords are the same."
+      });
+      return;
+    }
+    
+    if (signupPassword.length < 6) {
+      toast.error("Password too short", {
+        description: "Password must be at least 6 characters."
+      });
+      return;
+    }
+    
     setIsLoading(true);
     
-    setTimeout(() => {
-      setIsLoading(false);
+    const { error } = await signUp(signupEmail, signupPassword, signupFirstName, signupLastName);
+    
+    setIsLoading(false);
+    
+    if (error) {
+      toast.error("Signup failed", {
+        description: error.message || "Please try again."
+      });
+    } else {
       toast.success("Account created!", {
         description: "Welcome to PawHaven. Let's find your perfect pet!"
       });
-      navigate("/dashboard");
-    }, 1000);
+    }
   };
 
   return (
@@ -77,6 +125,8 @@ const Login = () => {
                     id="login-email" 
                     type="email" 
                     placeholder="your@email.com"
+                    value={loginEmail}
+                    onChange={(e) => setLoginEmail(e.target.value)}
                     required
                   />
                 </div>
@@ -91,6 +141,8 @@ const Login = () => {
                   <Input 
                     id="login-password" 
                     type="password"
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
                     required
                   />
                 </div>
@@ -112,7 +164,7 @@ const Login = () => {
               </div>
               
               <div className="grid grid-cols-2 gap-4">
-                <Button variant="outline" onClick={(e) => handleLogin(e)}>
+                <Button variant="outline" onClick={handleGoogleSignIn} type="button">
                   <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
                     <path
                       fill="currentColor"
@@ -133,32 +185,12 @@ const Login = () => {
                   </svg>
                   Google
                 </Button>
-                <Button variant="outline" onClick={(e) => handleLogin(e)}>
+                <Button variant="outline" disabled>
                   <svg className="mr-2 h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
                   </svg>
                   Facebook
                 </Button>
-              </div>
-
-              <div className="pt-4 border-t space-y-2">
-                <p className="text-sm text-center text-muted-foreground">Staff Login</p>
-                <div className="grid grid-cols-2 gap-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={(e) => handleLogin(e, "admin")}
-                  >
-                    Admin Portal
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={(e) => handleLogin(e, "vet")}
-                  >
-                    Vet Portal
-                  </Button>
-                </div>
               </div>
             </TabsContent>
             
@@ -170,6 +202,8 @@ const Login = () => {
                     <Input 
                       id="signup-firstname" 
                       placeholder="John"
+                      value={signupFirstName}
+                      onChange={(e) => setSignupFirstName(e.target.value)}
                       required
                     />
                   </div>
@@ -178,6 +212,8 @@ const Login = () => {
                     <Input 
                       id="signup-lastname" 
                       placeholder="Doe"
+                      value={signupLastName}
+                      onChange={(e) => setSignupLastName(e.target.value)}
                       required
                     />
                   </div>
@@ -189,6 +225,8 @@ const Login = () => {
                     id="signup-email" 
                     type="email" 
                     placeholder="your@email.com"
+                    value={signupEmail}
+                    onChange={(e) => setSignupEmail(e.target.value)}
                     required
                   />
                 </div>
@@ -199,7 +237,8 @@ const Login = () => {
                     id="signup-phone" 
                     type="tel" 
                     placeholder="(555) 123-4567"
-                    required
+                    value={signupPhone}
+                    onChange={(e) => setSignupPhone(e.target.value)}
                   />
                 </div>
                 
@@ -208,6 +247,8 @@ const Login = () => {
                   <Input 
                     id="signup-password" 
                     type="password"
+                    value={signupPassword}
+                    onChange={(e) => setSignupPassword(e.target.value)}
                     required
                   />
                 </div>
@@ -217,6 +258,8 @@ const Login = () => {
                   <Input 
                     id="signup-confirm" 
                     type="password"
+                    value={signupConfirmPassword}
+                    onChange={(e) => setSignupConfirmPassword(e.target.value)}
                     required
                   />
                 </div>
