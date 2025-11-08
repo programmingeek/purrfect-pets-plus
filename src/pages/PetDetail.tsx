@@ -9,15 +9,44 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Heart, MapPin, Calendar, ArrowLeft, CheckCircle, AlertCircle, Stethoscope } from "lucide-react";
+import { Heart, MapPin, Calendar, ArrowLeft, CheckCircle, AlertCircle, Stethoscope, Star } from "lucide-react";
 import { mockPets } from "@/data/mockPets";
 import { toast } from "sonner";
+import { PetFeedback } from "@/types/pet";
 
 const PetDetail = () => {
   const { id } = useParams();
   const pet = mockPets.find(p => p.id === id);
   const [isFavorite, setIsFavorite] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  // Mock feedback data
+  const mockFeedback: PetFeedback[] = [
+    {
+      id: "1",
+      petId: id || "",
+      userId: "user1",
+      userName: "Sarah Johnson",
+      userEmail: "sarah@example.com",
+      rating: 5,
+      comment: "Max has been the perfect addition to our family! He's so gentle with our kids and loves playing in the backyard. The adoption process was smooth and the staff was very helpful.",
+      adoptionDate: "2024-01-15",
+      submittedDate: "2024-02-01",
+      isVerifiedAdopter: true,
+    },
+    {
+      id: "2",
+      petId: id || "",
+      userId: "user2",
+      userName: "Michael Chen",
+      userEmail: "michael@example.com",
+      rating: 5,
+      comment: "Couldn't be happier with our decision to adopt! The team provided excellent support and answered all our questions. Highly recommend!",
+      adoptionDate: "2024-02-10",
+      submittedDate: "2024-03-05",
+      isVerifiedAdopter: true,
+    },
+  ];
 
   if (!pet) {
     return (
@@ -294,6 +323,61 @@ const PetDetail = () => {
                 </Card>
               </TabsContent>
             </Tabs>
+
+            {/* Adoption Feedback Section */}
+            <Card className="shadow-card">
+              <CardHeader>
+                <CardTitle>Adoption Feedback</CardTitle>
+                <CardDescription>
+                  Reviews from verified adopters
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {mockFeedback.length > 0 ? (
+                  <div className="space-y-4">
+                    {mockFeedback.map((feedback) => (
+                      <div key={feedback.id} className="border-b pb-4 last:border-0">
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="font-semibold">{feedback.userName}</span>
+                              {feedback.isVerifiedAdopter && (
+                                <Badge variant="secondary" className="text-xs">
+                                  Verified Adopter
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1">
+                              {[...Array(5)].map((_, i) => (
+                                <Star
+                                  key={i}
+                                  className={`w-4 h-4 ${
+                                    i < feedback.rating
+                                      ? "fill-yellow-500 text-yellow-500"
+                                      : "text-gray-300"
+                                  }`}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                          <span className="text-sm text-muted-foreground">
+                            {new Date(feedback.submittedDate).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <p className="text-sm text-muted-foreground">{feedback.comment}</p>
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Adopted on {new Date(feedback.adoptionDate).toLocaleDateString()}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    No feedback yet. Be the first to adopt and share your experience!
+                  </p>
+                )}
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>

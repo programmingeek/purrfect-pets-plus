@@ -59,3 +59,16 @@ export interface VetAppointment {
   status: "scheduled" | "completed" | "cancelled";
   notes?: string;
 }
+
+export interface PetFeedback {
+  id: string;
+  petId: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  rating: number; // 1-5
+  comment: string;
+  adoptionDate: string;
+  submittedDate: string;
+  isVerifiedAdopter: boolean;
+}

@@ -1,12 +1,22 @@
+import { useState } from "react";
 import Navigation from "@/components/Navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Heart, Calendar, FileText, Stethoscope, Bell, User } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Heart, Calendar, FileText, Stethoscope, Bell, User, MessageSquare } from "lucide-react";
 import { Link } from "react-router-dom";
+import { toast } from "sonner";
 
 const Dashboard = () => {
+  const [feedbackDialogOpen, setFeedbackDialogOpen] = useState(false);
+  const [selectedApplication, setSelectedApplication] = useState<any>(null);
+  const [feedbackRating, setFeedbackRating] = useState(5);
+  const [feedbackComment, setFeedbackComment] = useState("");
+
   // Mock data - would come from backend in real app
   const favorites = [
     { id: "1", name: "Max", breed: "Golden Retriever", image: "https://images.unsplash.com/photo-1633722715463-d30f4f325e24?w=400&h=400&fit=crop" },
@@ -25,6 +35,22 @@ const Dashboard = () => {
   const vaccinations = [
     { id: "1", petName: "Bella", vaccine: "Rabies", dueDate: "2024-12-15", status: "upcoming" }
   ];
+
+  const handleSubmitFeedback = () => {
+    if (!feedbackComment.trim()) {
+      toast.error("Please provide feedback before submitting.");
+      return;
+    }
+
+    toast.success("Feedback Submitted", {
+      description: "Thank you for sharing your adoption experience!",
+    });
+
+    setFeedbackDialogOpen(false);
+    setFeedbackComment("");
+    setFeedbackRating(5);
+    setSelectedApplication(null);
+  };
 
   const getStatusColor = (status: string) => {
     switch(status) {
@@ -208,7 +234,60 @@ const Dashboard = () => {
                         {app.status.replace('_', ' ')}
                       </Badge>
                     </div>
-                    <Button variant="outline">View Application</Button>
+                    <div className="flex gap-2">
+                      {app.status === "approved" && (
+                        <Dialog open={feedbackDialogOpen && selectedApplication?.id === app.id} onOpenChange={(open) => {
+                          setFeedbackDialogOpen(open);
+                          if (open) setSelectedApplication(app);
+                          else setSelectedApplication(null);
+                        }}>
+                          <DialogTrigger asChild>
+                            <Button variant="outline" size="sm">
+                              <MessageSquare className="w-4 h-4 mr-2" />
+                              Add Feedback
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Share Your Adoption Experience</DialogTitle>
+                              <DialogDescription>
+                                Help future adopters by sharing your experience with {app.petName}
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4">
+                              <div>
+                                <Label>Rating</Label>
+                                <div className="flex gap-2 mt-2">
+                                  {[1, 2, 3, 4, 5].map((star) => (
+                                    <button
+                                      key={star}
+                                      onClick={() => setFeedbackRating(star)}
+                                      className={`text-2xl ${star <= feedbackRating ? "text-yellow-500" : "text-gray-300"}`}
+                                    >
+                                      ★
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                              <div>
+                                <Label htmlFor="feedback">Your Feedback</Label>
+                                <Textarea
+                                  id="feedback"
+                                  placeholder="Share your experience with this pet..."
+                                  value={feedbackComment}
+                                  onChange={(e) => setFeedbackComment(e.target.value)}
+                                  rows={5}
+                                />
+                              </div>
+                              <Button onClick={handleSubmitFeedback} className="w-full">
+                                Submit Feedback
+                              </Button>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                      )}
+                      <Button variant="outline">View Application</Button>
+                    </div>
                   </div>
                 ))}
               </CardContent>
