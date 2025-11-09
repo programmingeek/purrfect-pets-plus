@@ -12,41 +12,24 @@ import { Textarea } from "@/components/ui/textarea";
 import { Heart, MapPin, Calendar, ArrowLeft, CheckCircle, AlertCircle, Stethoscope, Star } from "lucide-react";
 import { mockPets } from "@/data/mockPets";
 import { toast } from "sonner";
-import { PetFeedback } from "@/types/pet";
+import { usePetFeedback } from "@/hooks/usePetFeedback";
+import { useApprovedApplication } from "@/hooks/useApprovedApplication";
+import { useFeedbackRealtime } from "@/hooks/useFeedbackRealtime";
 
 const PetDetail = () => {
   const { id } = useParams();
   const pet = mockPets.find(p => p.id === id);
   const [isFavorite, setIsFavorite] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [feedbackDialogOpen, setFeedbackDialogOpen] = useState(false);
+  const [feedbackRating, setFeedbackRating] = useState(5);
+  const [feedbackComment, setFeedbackComment] = useState("");
 
-  // Mock feedback data
-  const mockFeedback: PetFeedback[] = [
-    {
-      id: "1",
-      petId: id || "",
-      userId: "user1",
-      userName: "Sarah Johnson",
-      userEmail: "sarah@example.com",
-      rating: 5,
-      comment: "Max has been the perfect addition to our family! He's so gentle with our kids and loves playing in the backyard. The adoption process was smooth and the staff was very helpful.",
-      adoptionDate: "2024-01-15",
-      submittedDate: "2024-02-01",
-      isVerifiedAdopter: true,
-    },
-    {
-      id: "2",
-      petId: id || "",
-      userId: "user2",
-      userName: "Michael Chen",
-      userEmail: "michael@example.com",
-      rating: 5,
-      comment: "Couldn't be happier with our decision to adopt! The team provided excellent support and answered all our questions. Highly recommend!",
-      adoptionDate: "2024-02-10",
-      submittedDate: "2024-03-05",
-      isVerifiedAdopter: true,
-    },
-  ];
+  const { feedback, isLoading: feedbackLoading, canLeaveFeedback, submitFeedback } = usePetFeedback(id || "");
+  const { data: approvedApplication } = useApprovedApplication(id || "");
+  
+  // Enable realtime updates for feedback
+  useFeedbackRealtime(id);
 
   if (!pet) {
     return (
@@ -68,6 +51,21 @@ const PetDetail = () => {
     toast.success("Adoption request submitted!", {
       description: "We'll review your application and get back to you soon."
     });
+  };
+
+  const handleFeedbackSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!approvedApplication?.id) return;
+
+    await submitFeedback.mutateAsync({
+      rating: feedbackRating,
+      comment: feedbackComment,
+      applicationId: approvedApplication.id,
+    });
+
+    setFeedbackDialogOpen(false);
+    setFeedbackRating(5);
+    setFeedbackComment("");
   };
 
   return (
@@ -327,32 +325,92 @@ const PetDetail = () => {
             {/* Adoption Feedback Section */}
             <Card className="shadow-card">
               <CardHeader>
-                <CardTitle>Adoption Feedback</CardTitle>
-                <CardDescription>
-                  Reviews from verified adopters
-                </CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Adoption Feedback</CardTitle>
+                    <CardDescription>
+                      Reviews from verified adopters
+                    </CardDescription>
+                  </div>
+                  {canLeaveFeedback && (
+                    <Dialog open={feedbackDialogOpen} onOpenChange={setFeedbackDialogOpen}>
+                      <DialogTrigger asChild>
+                        <Button size="sm">Leave Feedback</Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Share Your Experience</DialogTitle>
+                          <DialogDescription>
+                            Tell us about your experience adopting {pet.name}
+                          </DialogDescription>
+                        </DialogHeader>
+                        <form onSubmit={handleFeedbackSubmit} className="space-y-4">
+                          <div className="space-y-2">
+                            <Label>Rating</Label>
+                            <div className="flex gap-2">
+                              {[1, 2, 3, 4, 5].map((star) => (
+                                <button
+                                  key={star}
+                                  type="button"
+                                  onClick={() => setFeedbackRating(star)}
+                                  className="focus:outline-none"
+                                >
+                                  <Star
+                                    className={`w-6 h-6 cursor-pointer ${
+                                      star <= feedbackRating
+                                        ? "fill-yellow-500 text-yellow-500"
+                                        : "text-gray-300"
+                                    }`}
+                                  />
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="comment">Your Feedback</Label>
+                            <Textarea
+                              id="comment"
+                              value={feedbackComment}
+                              onChange={(e) => setFeedbackComment(e.target.value)}
+                              placeholder="Share your experience..."
+                              required
+                              rows={4}
+                            />
+                          </div>
+                          <DialogFooter>
+                            <Button type="submit" disabled={submitFeedback.isPending}>
+                              {submitFeedback.isPending ? "Submitting..." : "Submit Feedback"}
+                            </Button>
+                          </DialogFooter>
+                        </form>
+                      </DialogContent>
+                    </Dialog>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
-                {mockFeedback.length > 0 ? (
+                {feedbackLoading ? (
+                  <p className="text-sm text-muted-foreground">Loading feedback...</p>
+                ) : feedback && feedback.length > 0 ? (
                   <div className="space-y-4">
-                    {mockFeedback.map((feedback) => (
-                      <div key={feedback.id} className="border-b pb-4 last:border-0">
+                    {feedback.map((fb) => (
+                      <div key={fb.id} className="border-b pb-4 last:border-0">
                         <div className="flex items-start justify-between mb-2">
                           <div>
                             <div className="flex items-center gap-2 mb-1">
-                              <span className="font-semibold">{feedback.userName}</span>
-                              {feedback.isVerifiedAdopter && (
-                                <Badge variant="secondary" className="text-xs">
-                                  Verified Adopter
-                                </Badge>
-                              )}
+                              <span className="font-semibold">
+                                {fb.profile?.first_name} {fb.profile?.last_name}
+                              </span>
+                              <Badge variant="secondary" className="text-xs">
+                                Verified Adopter
+                              </Badge>
                             </div>
                             <div className="flex items-center gap-1">
                               {[...Array(5)].map((_, i) => (
                                 <Star
                                   key={i}
                                   className={`w-4 h-4 ${
-                                    i < feedback.rating
+                                    i < (fb.rating || 0)
                                       ? "fill-yellow-500 text-yellow-500"
                                       : "text-gray-300"
                                   }`}
@@ -361,13 +419,10 @@ const PetDetail = () => {
                             </div>
                           </div>
                           <span className="text-sm text-muted-foreground">
-                            {new Date(feedback.submittedDate).toLocaleDateString()}
+                            {new Date(fb.created_at).toLocaleDateString()}
                           </span>
                         </div>
-                        <p className="text-sm text-muted-foreground">{feedback.comment}</p>
-                        <p className="text-xs text-muted-foreground mt-2">
-                          Adopted on {new Date(feedback.adoptionDate).toLocaleDateString()}
-                        </p>
+                        <p className="text-sm text-muted-foreground">{fb.comment}</p>
                       </div>
                     ))}
                   </div>
