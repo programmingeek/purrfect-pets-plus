@@ -5,9 +5,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import petIcon from "@/assets/pet-icon.png";
 import { useAuth } from "@/contexts/AuthContext";
+import { AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -21,10 +24,13 @@ const Login = () => {
   const [signupPhone, setSignupPhone] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
   const [signupConfirmPassword, setSignupConfirmPassword] = useState("");
+  const [signupRole, setSignupRole] = useState("user");
 
   useEffect(() => {
     if (user && userRole) {
       if (userRole === "admin") {
+        navigate("/admin");
+      } else if (userRole === "vet") {
         navigate("/admin");
       } else {
         navigate("/dashboard");
@@ -80,7 +86,7 @@ const Login = () => {
     
     setIsLoading(true);
     
-    const { error } = await signUp(signupEmail, signupPassword, signupFirstName, signupLastName);
+    const { error } = await signUp(signupEmail, signupPassword, signupFirstName, signupLastName, signupRole);
     
     setIsLoading(false);
     
@@ -195,6 +201,13 @@ const Login = () => {
             </TabsContent>
             
             <TabsContent value="signup" className="space-y-4">
+              <Alert variant="destructive" className="mb-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  <strong>Security Notice:</strong> Admin and vet roles should only be assigned through a secure admin panel. Self-registration with elevated privileges is not recommended for production use.
+                </AlertDescription>
+              </Alert>
+              
               <form onSubmit={handleSignup} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -240,6 +253,20 @@ const Login = () => {
                     value={signupPhone}
                     onChange={(e) => setSignupPhone(e.target.value)}
                   />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="signup-role">Register As</Label>
+                  <Select value={signupRole} onValueChange={setSignupRole}>
+                    <SelectTrigger id="signup-role">
+                      <SelectValue placeholder="Select your role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="user">Pet Adopter</SelectItem>
+                      <SelectItem value="vet">Veterinarian</SelectItem>
+                      <SelectItem value="admin">Administrator</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 
                 <div className="space-y-2">

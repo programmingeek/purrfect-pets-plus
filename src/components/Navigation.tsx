@@ -91,7 +91,7 @@ const Navigation = () => {
                 </Link>
               </Button>
               
-              {userRole === 'admin' && (
+              {(userRole === 'admin' || userRole === 'vet') && (
                 <Button
                   variant={isActive("/admin") ? "default" : "outline"}
                   size="sm"
